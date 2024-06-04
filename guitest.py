@@ -40,7 +40,7 @@ class SteganographyApp:
         self.operation_label = tk.Label(self.root, text="Select Operation:")
         self.operation_label.place(x=120, y=10)
 
-        self.operation_combobox = ttk.Combobox(self.root, values=["Encode", "Decode"])
+        self.operation_combobox = ttk.Combobox(self.root, values=["Encode", "Decode", "Comparison"])
         self.operation_combobox.place(x=220, y=10)
         self.operation_combobox.bind("<<ComboboxSelected>>", self.update_ui)
 
@@ -68,11 +68,31 @@ class SteganographyApp:
         self.stego_drop.dnd_bind('<<Drop>>', self.handle_cover_stego_drop)
         self.stego_drop.bind("<Double-Button-1>", self.browse_stego)
 
+        self.image1_label = tk.Label(self.root, text="Image 1 Object: None", width=25)
+        self.image1_drop = tk.Listbox(self.root, height=2, width=30, justify="center")
+        self.image1_drop.insert(1, "Drag/Browser Image files here")
+        self.image1_drop.itemconfig(0, {'fg':'blue'})
+        self.image1_drop.drop_target_register(DND_FILES)
+        self.image1_drop.dnd_bind('<<Drop>>', self.handle_cover_stego_drop)
+        self.image1_drop.bind("<Double-Button-1>", self.browse_image1)
+
+        self.image2_label = tk.Label(self.root, text="Image 2 Object: None", width=25)
+        self.image2_drop = tk.Listbox(self.root, height=2, width=30, justify="center")
+        self.image2_drop.insert(1, "Drag/Browser Image files here")
+        self.image2_drop.itemconfig(0, {'fg':'blue'})
+        self.image2_drop.drop_target_register(DND_FILES)
+        self.image2_drop.dnd_bind('<<Drop>>', self.handle_image2_drop)
+        self.image2_drop.bind("<Double-Button-1>", self.browse_image2)
+
         self.encode_button = tk.Button(self.root, text="Encode", command=self.encode)
+        self.compare_button = tk.Button(self.root, text="Compare", command=self.compare)
         self.decode_button = tk.Button(self.root, text="Decode", command=self.decode)
         self.image_label = tk.Label(self.root)  # Label to display the original image
         self.payload_image_label = tk.Label(self.root) # Label to display the payload image
         self.encoded_image_label = tk.Label(self.root) # Label to display the encoded image
+
+        self.image1_pic_label = tk.Label(self.root) # Label to display image1
+        self.image2_pic_label = tk.Label(self.root) # Label to display image2
 
         self.lsb_label = tk.Label(self.root, text="Number of LSBs to use:")
         self.lsb_spinbox = tk.Spinbox(self.root, from_=1, to=8, width=5)
@@ -136,6 +156,21 @@ class SteganographyApp:
             self.lsb_label.place(x=120, y=310)
             self.lsb_spinbox.place(x=250, y=310)
             self.decode_button.place(x=320, y=305)
+        
+        elif operation == "Comparison":
+            self.stego_drop.place_forget()
+            self.stego_label.place_forget()
+            self.lsb_label.place_forget()
+            self.lsb_spinbox.place_forget()
+            self.decode_button.place_forget()
+
+            self.image1_drop.place(x=50, y=240)
+            self.image1_label.place(x=50, y=280)
+            self.image2_drop.place(x=280, y=240)
+            self.image2_label.place(x=280, y=280)
+            self.compare_button.place(x=230, y=315)
+            self.image1_pic_label.place(x=80, y=50)
+            self.image2_pic_label.place(x=280, y=50)
 
     def handle_cover_stego_drop(self, event):
         file_path = event.data.strip("{}")
@@ -198,6 +233,23 @@ class SteganographyApp:
                 self.image_label.place(x=160, y=40)
             else:
                 messagebox.showerror("Error", "Unsupported stego object type.")
+
+        elif self.operation_combobox.get() == "Comparison":
+            self.image1_file_path = file_path
+            if file_path.lower().endswith(('.png', '.bmp', '.gif')):
+                self.display_image1(file_path)
+                self.image1_label.config(text=f"Image 1 Object: {os.path.basename(file_path)}")
+                self.image1_pic_label.place(x=80, y=60)
+
+    def handle_image2_drop(self, event):
+        file_path = event.data.strip("{}")
+        self.image2_file_path = file_path
+        if file_path.lower().endswith(('.png', '.bmp', '.gif')):
+            self.display_image2(file_path)
+            self.image2_label.config(text=f"Image 2 Object: {os.path.basename(file_path)}")
+            self.image2_pic_label.place(x=300, y=60)
+        else:
+            messagebox.showerror("Error", "Unsupported payload object type.")
 
     def handle_payload_drop(self, event):
         file_path = event.data.strip("{}")
@@ -275,6 +327,16 @@ class SteganographyApp:
         file_path = filedialog.askopenfilename(title="Select Stego Object", filetypes=[("All Files", "*.*")])
         if file_path:
             self.handle_cover_stego_drop(type('', (), {'data': file_path})())
+    
+    def browse_image1(self, event=None):
+        file_path = filedialog.askopenfilename(title="Select Image Object", filetypes=[("All Files", "*.*")])
+        if file_path:
+            self.handle_cover_stego_drop(type('', (), {'data': file_path})())
+    
+    def browse_image2(self, event=None):
+        file_path = filedialog.askopenfilename(title="Select Image Object", filetypes=[("All Files", "*.*")])
+        if file_path:
+            self.handle_image2_drop(type('', (), {'data': file_path})())
 
     def display_image(self, file_path):
         image = Image.open(file_path)
@@ -282,6 +344,20 @@ class SteganographyApp:
         image = ImageTk.PhotoImage(image)
         self.image_label.config(image=image)
         self.image_label.image = image
+
+    def display_image1(self, file_path):
+        image = Image.open(file_path)
+        image.thumbnail((130, 130), Image.LANCZOS)
+        image = ImageTk.PhotoImage(image)
+        self.image1_pic_label.config(image=image)
+        self.image1_pic_label.image = image
+
+    def display_image2(self, file_path):
+        image = Image.open(file_path)
+        image.thumbnail((130, 130), Image.LANCZOS)
+        image = ImageTk.PhotoImage(image)
+        self.image2_pic_label.config(image=image)
+        self.image2_pic_label.image = image
 
     def display_payload_image(self, file_path):
         image = Image.open(file_path)
@@ -494,6 +570,15 @@ class SteganographyApp:
         print(data)
         steganography.write_file(f"{output_path}.{data['message_extension']}", data["message"])
         messagebox.showinfo("Success", "Decoding completed successfully.")
+
+    def compare(self):
+        image1_path = self.image1_file_path
+        print(image1_path)
+        image2_path = self.image2_file_path
+        print(image2_path)
+        output_path = filedialog.asksaveasfilename() + ".png"
+
+        steganography.compare_object(image1_path, image2_path, output_path)
 
     def on_closing(self):
         self.stop_cover_audio_or_video()
