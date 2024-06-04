@@ -66,13 +66,16 @@ def encode_image(
     if not is_encodable(cover_data, payload_data, bits):
         ValueError("Cover Object size is too small")
 
+    payload_index = 0
     for row in cover_data:
         for pixel in row:
             pixel_data = to_bin(pixel)
             for index, bin_str in enumerate(pixel_data):
-                if len(payload_data) > 0:
-                    pixel[index] = int(bin_str[:-bits] + payload_data[0:bits], 2)
-                    payload_data = payload_data[bits:]
+                if payload_index < len(payload_data) - 1:
+                    new_bin_str = (bin_str[:-bits] + payload_data[payload_index:payload_index + bits]).ljust(8, '0')
+                    pixel[index] = int(new_bin_str, 2)
+
+                    payload_index += bits
                 else:
                     print("Finished encoding Image!")
                     return cover_data
@@ -89,23 +92,15 @@ def encode_audio(
     if not is_encodable(cover_data_bytes, payload_data, bits):
         ValueError("Cover Object size is too small")
 
-    number_of_iterations = len(payload_data) / bits
     payload_index = 0
     for index, byte in enumerate(mutable_cover_data):
         if payload_index < len(payload_data):
             bin_str = to_bin(byte)
-            mutable_cover_data[index] = int(
-                bin_str[:-bits] + payload_data[payload_index : payload_index + bits], 2
-            ).to_bytes(1, byteorder="big")[0]
-            # payload_data = payload_data[bits:]
+
+            new_bin_str = (bin_str[:-bits] + payload_data[payload_index : payload_index + bits]).ljust(8, '0')
+            mutable_cover_data[index] = int(new_bin_str, 2).to_bytes(1, byteorder="big")[0]
 
             payload_index += bits
-
-            if index % math.floor(number_of_iterations / 50) == 0:
-                print(
-                    f"Progress: {index / number_of_iterations * 100}% || Payload Length Left: {len(payload_data)}"
-                )
-
         else:
             print("Finished encoding Audio!")
             return mutable_cover_data
@@ -114,7 +109,7 @@ def encode_audio(
 def decode_audio(stego_data: bytes, bits: int):
     print("\nDecoding Audio..")
     payload_array = []
-    for index, byte in enumerate(stego_data):
+    for byte in stego_data:
         bin_str = to_bin(byte)
         payload_array.append(bin_str[-bits:])
 
@@ -375,15 +370,15 @@ def is_encodable_video(cap, payload_data, bits):
 
 
 if __name__ == "__main__":
-    coverObjectPath = "./coverObject.png"
-    encodedObjectPath = "./encodedObject.png"
-    payloadPath = "./coverObject.png"
+    coverObjectPath = "./coverObject.wav"
+    encodedObjectPath = "./encodedObject.wav"
+    payloadPath = "./test.txt"
 
-    # encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
+    encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
 
-    # data = decode(encodedObjectPath, 6)
+    data = decode(encodedObjectPath, 6)
     # print("Decoded_message: ", data)
 
-    # write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
+    write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
 
-    compare_object(coverObjectPath, encodedObjectPath)
+    # compare_object(coverObjectPath, encodedObjectPath)
