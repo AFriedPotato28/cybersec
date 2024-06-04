@@ -337,10 +337,17 @@ def compare_object(
     file_extension2 = object_path2.split(".")[-1].lower()
 
     if file_extension1 not in ["png", "bmp"] or file_extension2 not in ["png", "bmp"]:
-        ValueError("File type unsupported")
+        raise ValueError("File type unsupported")
 
     object_data1 = cv2.imread(object_path1)
     object_data2 = cv2.imread(object_path2)
+
+    object_data1_d = (len(object_data1), len(object_data1[0]))
+    object_data2_d = (len(object_data2), len(object_data2[0]))
+
+    if object_data1_d != object_data2_d:
+        print("NOT THE SAME")
+        raise ValueError("Dimension is not the same")
 
     comparison_result = object_data1.copy()
     count = 0
@@ -493,6 +500,4 @@ if __name__ == "__main__":
     data = decode(encodedObjectPath, 7)
     # print("Decoded_message: ", data)
 
-    #write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
-
-    # compare_object(coverObjectPath, encodedObjectPath)
+    write_file(f"decodedMessage.{data['message_extension']}", data["message"])
