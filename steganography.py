@@ -29,6 +29,13 @@ def encode(cover_path: str, payload_path: str, bits: int, output_path: str):
             file.setsampwidth(w.getsampwidth())
             file.setframerate(w.getframerate())
             file.writeframes(encoded_audio)
+
+    elif file_extension in ["txt"]:
+        cover_data = read_file(cover_path)
+        payload_data = read_file(payload_path)
+
+        encoded_message = encode_txt(cover_data, payload_data)
+        write_file(output_path, encoded_message)
     else:
         ValueError("File type unsupported")
 
@@ -45,8 +52,62 @@ def decode(stego_path: str, bits: int):
         stego_data = w.readframes(w.getnframes())
 
         return decode_audio(stego_data, bits)
+    elif file_extension in ["txt"]:
+        stego_data = read_file(stego_path)
+        return decode_txt(stego_data)
     else:
         ValueError("File type unsupported")
+
+
+def encode_txt(cover_data: str, payload_data: str):
+    print(f"Cover data: {cover_data}")
+    print(f"Payload data: {payload_data}")
+
+    payload_index = 0
+    for i in range(0, len(cover_data), 8):
+        bin_str = cover_data[i : i + 8]
+        if bin_str == "00100000" or bin_str == "10100000":
+            if payload_data[payload_index] == "0":
+                cover_data = cover_data[:i] + "00100000" + cover_data[i + 8 :]
+            else:
+                cover_data = cover_data[:i] + "00001001" + cover_data[i + 8 :]
+            payload_index = payload_index + 1
+            if payload_index >= len(payload_data):
+                message = bytes(
+                    int(cover_data[i : i + 8], 2) for i in range(0, len(cover_data), 8)
+                )
+                return message
+
+    if payload_index < len(payload_data):
+        for i in range(payload_index, len(payload_data)):
+            if payload_data[payload_index] == "0":
+                cover_data += "00100000"
+            else:
+                cover_data += "00001001"
+            payload_index = payload_index + 1
+
+    message = bytes(int(cover_data[i : i + 8], 2) for i in range(0, len(cover_data), 8))
+    return message
+
+
+def decode_txt(stego_data: bytes):
+    payload_array = []
+    for i in range(0, len(stego_data), 8):
+        if stego_data[i : i + 8] == "00100000":
+            payload_array.append("0")
+        elif stego_data[i : i + 8] == "00001001":
+            payload_array.append("1")
+    payload_data = "".join(payload_array)
+    message = bytes(
+        int(payload_data[i : i + 8], 2) for i in range(0, len(payload_data), 8)
+    )
+
+    metadata = {
+        "message_extension": "txt",
+        "message_length": len(payload_data),
+        "message": message,
+    }
+    return metadata
 
 
 def encode_image(
@@ -65,7 +126,10 @@ def encode_image(
             pixel_data = to_bin(pixel)
             for index, bin_str in enumerate(pixel_data):
                 if payload_index < len(payload_data) - 1:
-                    new_bin_str = (bin_str[:-bits] + payload_data[payload_index:payload_index + bits]).ljust(8, '0')
+                    new_bin_str = (
+                        bin_str[:-bits]
+                        + payload_data[payload_index : payload_index + bits]
+                    ).ljust(8, "0")
                     pixel[index] = int(new_bin_str, 2)
 
                     payload_index += bits
@@ -90,8 +154,12 @@ def encode_audio(
         if payload_index < len(payload_data):
             bin_str = to_bin(byte)
 
-            new_bin_str = (bin_str[:-bits] + payload_data[payload_index : payload_index + bits]).ljust(8, '0')
-            mutable_cover_data[index] = int(new_bin_str, 2).to_bytes(1, byteorder="big")[0]
+            new_bin_str = (
+                bin_str[:-bits] + payload_data[payload_index : payload_index + bits]
+            ).ljust(8, "0")
+            mutable_cover_data[index] = int(new_bin_str, 2).to_bytes(
+                1, byteorder="big"
+            )[0]
 
             payload_index += bits
         else:
@@ -283,8 +351,8 @@ def compare_object(
 
 
 if __name__ == "__main__":
-    coverObjectPath = "./coverObject.wav"
-    encodedObjectPath = "./encodedObject.wav"
+    coverObjectPath = "./coverObject.txt"
+    encodedObjectPath = "./encodedObject.txt"
     payloadPath = "./test.txt"
 
     encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
