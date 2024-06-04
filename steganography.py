@@ -40,7 +40,7 @@ def encode(cover_path: str, payload_path: str, bits: int, output_path: str):
         encoded_message = encode_txt(cover_data, payload_data)
         write_file(output_path, encoded_message)
     else:
-        ValueError("File type unsupported")
+        raise ValueError("File type unsupported")
 
 
 def decode(stego_path: str, bits: int):
@@ -62,7 +62,7 @@ def decode(stego_path: str, bits: int):
         stego_data = read_file(stego_path)
         return decode_txt(stego_data)
     else:
-        ValueError("File type unsupported")
+        raise ValueError("File type unsupported")
 
 
 def encode_txt(cover_data: str, payload_data: str):
@@ -124,7 +124,7 @@ def encode_image(
     payload_data = metadata + payload_data
 
     if not is_encodable(cover_data, payload_data, bits):
-        ValueError("Cover Object size is too small")
+        raise ValueError("Cover Object size is too small")
 
     payload_index = 0
     for row in cover_data:
@@ -153,7 +153,7 @@ def encode_audio(
     payload_data = metadata + payload_data
 
     if not is_encodable(cover_data_bytes, payload_data, bits):
-        ValueError("Cover Object size is too small")
+        raise ValueError("Cover Object size is too small")
 
     payload_index = 0
     for index, byte in enumerate(mutable_cover_data):
