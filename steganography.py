@@ -292,6 +292,6 @@ if __name__ == "__main__":
     data = decode(encodedObjectPath, 6)
     # print("Decoded_message: ", data)
 
-    write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
+    #write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
 
     # compare_object(coverObjectPath, encodedObjectPath)
