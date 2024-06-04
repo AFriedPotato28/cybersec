@@ -29,6 +29,10 @@ def encode(cover_path: str, payload_path: str, bits: int, output_path: str):
             file.setsampwidth(w.getsampwidth())
             file.setframerate(w.getframerate())
             file.writeframes(encoded_audio)
+    
+    elif file_extension in ["mp4", "avi", "mov"]:
+        encode_video(cover_path, payload_path, bits, output_path, payload_extension)    
+
     else:
         ValueError("File type unsupported")
 
@@ -45,6 +49,9 @@ def decode(stego_path: str, bits: int):
         stego_data = w.readframes(w.getnframes())
 
         return decode_audio(stego_data, bits)
+    
+    elif file_extension in ["mp4", "avi", "mov"]:
+        return decode_video(stego_path, bits)   
     else:
         ValueError("File type unsupported")
 
@@ -285,6 +292,86 @@ def compare_object(
 
     print("Diff", count)
     cv2.imwrite(output_path, comparison_result)
+
+def encode_video(cover_path: str, payload_path: str, bits: int, output_path: str, file_extension: str):
+    print("\nEncoding Video..")
+    cap = cv2.VideoCapture(cover_path)
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(output_path, fourcc, cap.get(cv2.CAP_PROP_FPS), 
+                          (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+
+    payload_data = read_file(payload_path)
+    metadata = generate_metadata(payload_data, file_extension)
+    payload_data = metadata + payload_data
+    
+    if not is_encodable_video(cap, payload_data, bits):
+        raise ValueError("Cover Object size is too small")
+
+    frame_count = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if len(payload_data) > 0:
+            encoded_frame, payload_data = encode_frame(frame, payload_data, bits)
+            out.write(encoded_frame)
+        else:
+            out.write(frame)
+        frame_count += 1
+
+    cap.release()
+    out.release()
+    print("Finished encoding Video!")
+
+def encode_frame(frame, payload_data, bits):
+    for row in frame:
+        for pixel in row:
+            pixel_data = to_bin(pixel)
+            for index, bin_str in enumerate(pixel_data):
+                if len(payload_data) > 0:
+                    pixel[index] = int(bin_str[:-bits] + payload_data[:bits], 2)
+                    payload_data = payload_data[bits:]
+                else:
+                    return frame, payload_data
+    return frame, payload_data
+
+
+def decode_video(stego_path: str, bits: int):
+    print("\nDecoding Video..")
+    cap = cv2.VideoCapture(stego_path)
+    payload_array = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        payload_array.append(extract_payload_from_frame(frame, bits))
+    
+    payload_data = "".join(payload_array)
+    metadata = get_metadata(payload_data)
+    cap.release()
+    print("Finished decoding Video!")
+    return metadata
+
+
+def extract_payload_from_frame(frame, bits):
+    payload_array = []
+    for row in frame:
+        for pixel in row:
+            pixel_data = to_bin(pixel)
+            for bin_str in pixel_data:
+                payload_array.append(bin_str[-bits:])
+    return "".join(payload_array)
+
+
+def is_encodable_video(cap, payload_data, bits):
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cover_data_bytes = frame_count * frame_height * frame_width * 3  # 3 bytes per pixel (RGB)
+    needed_bytes = math.ceil(len(payload_data) / bits)
+    return cover_data_bytes > needed_bytes
+
 
 
 if __name__ == "__main__":
