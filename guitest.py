@@ -93,6 +93,7 @@ class SteganographyApp:
 
         self.image1_pic_label = tk.Label(self.root) # Label to display image1
         self.image2_pic_label = tk.Label(self.root) # Label to display image2
+        self.image3_pic_label = tk.Label(self.root) # Label to display image2
 
         self.lsb_label = tk.Label(self.root, text="Number of LSBs to use:")
         self.lsb_spinbox = tk.Spinbox(self.root, from_=1, to=8, width=5)
@@ -171,6 +172,7 @@ class SteganographyApp:
             self.compare_button.place(x=230, y=315)
             self.image1_pic_label.place(x=80, y=50)
             self.image2_pic_label.place(x=280, y=50)
+            self.image3_pic_label.place(x=1, y=360)
 
     def handle_cover_stego_drop(self, event):
         file_path = event.data.strip("{}")
@@ -358,6 +360,13 @@ class SteganographyApp:
         image = ImageTk.PhotoImage(image)
         self.image2_pic_label.config(image=image)
         self.image2_pic_label.image = image
+    
+    def display_compare(self, file_path):
+        image = Image.open(file_path)
+        resize_image = image.resize((520, 300))
+        image = ImageTk.PhotoImage(resize_image)
+        self.image3_pic_label.config(image=image)
+        self.image3_pic_label.image = image
 
     def display_payload_image(self, file_path):
         image = Image.open(file_path)
@@ -579,6 +588,8 @@ class SteganographyApp:
         output_path = filedialog.asksaveasfilename() + ".png"
 
         steganography.compare_object(image1_path, image2_path, output_path)
+        self.display_compare(output_path)
+        print(output_path)
 
     def on_closing(self):
         self.stop_cover_audio_or_video()
