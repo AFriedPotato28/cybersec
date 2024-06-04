@@ -30,7 +30,7 @@ def encode(cover_path: str, payload_path: str, bits: int, output_path: str):
             file.setframerate(w.getframerate())
             file.writeframes(encoded_audio)
 
-    elif file_extension in ["mp4", "avi", "mov"]:
+    elif file_extension in ["avi"]:
         encode_video(cover_path, payload_path, bits, output_path, payload_extension)
 
     elif file_extension in ["txt"]:
@@ -131,7 +131,7 @@ def encode_image(
         for pixel in row:
             pixel_data = to_bin(pixel)
             for index, bin_str in enumerate(pixel_data):
-                if payload_index < len(payload_data) - 1:
+                if payload_index < len(payload_data):
                     new_bin_str = (
                         bin_str[:-bits]
                         + payload_data[payload_index : payload_index + bits]
@@ -361,7 +361,8 @@ def encode_video(
 ):
     print("\nEncoding Video..")
     cap = cv2.VideoCapture(cover_path)
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"FFV1")
+
     out = cv2.VideoWriter(
         output_path,
         fourcc,
@@ -380,18 +381,20 @@ def encode_video(
         raise ValueError("Cover Object size is too small")
 
     frame_count = 0
+    counter = 0
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
         if len(payload_data) > 0:
+            counter += 1
             encoded_frame, payload_data = encode_frame(frame, payload_data, bits)
             out.write(encoded_frame)
         else:
             out.write(frame)
         frame_count += 1
-
+    print("Total times called encode_frame:", counter)
     cap.release()
     out.release()
     print("Finished encoding Video!")
@@ -414,11 +417,29 @@ def decode_video(stego_path: str, bits: int):
     print("\nDecoding Video..")
     cap = cv2.VideoCapture(stego_path)
     payload_array = []
+
+    iterations = 0
+    payload_length = math.inf
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+
+        height = len(frame)
+        width = len(frame[0])
+
+        bitsEncodedPerFrame = height * width * bits
+
         payload_array.append(extract_payload_from_frame(frame, bits))
+        if iterations == 0:
+            payload_data = "".join(payload_array)
+            payload_length = int(payload_data[0:METADATA_MESSAGE_LENGTH_SIZE], 2)
+
+        if iterations * bitsEncodedPerFrame > payload_length + METADATA_LENGTH:
+            break
+
+        iterations += 1
 
     payload_data = "".join(payload_array)
     metadata = get_metadata(payload_data)
@@ -463,13 +484,13 @@ def is_encodable_video(cap, payload_data, bits):
 #     # compare_object(coverObjectPath, encodedObjectPath)
 
 if __name__ == "__main__":
-    coverObjectPath = "./coverObject.mp4"
-    encodedObjectPath = "./encodedObject.mp4"
-    payloadPath = "./payload.png"  # Ensure this path is correct and the file exists
+    coverObjectPath = "./coverObject.avi"
+    encodedObjectPath = "./encodedObject.avi"
+    payloadPath = "./test.txt"  # Ensure this path is correct and the file exists
 
-    encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
+    encode(coverObjectPath, payloadPath, 7, encodedObjectPath)
 
-    data = decode(encodedObjectPath, 6)
-    print("Decoded_message: ", data)
+    data = decode(encodedObjectPath, 7)
+    # print("Decoded_message: ", data)
 
     write_file(f"decodedMessage.{data['message_extension']}", data["message"])
