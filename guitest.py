@@ -423,7 +423,7 @@ class SteganographyApp:
         cover_path = self.cover_file_path
         payload_path = self.payload_file_path
         bits = int(self.lsb_spinbox.get())
-        output_path = filedialog.asksaveasfilename(defaultextension=".png")
+        output_path = filedialog.asksaveasfilename()
 
         if not cover_path or not payload_path:
             messagebox.showerror("Error", "Please select cover and payload objects.")
