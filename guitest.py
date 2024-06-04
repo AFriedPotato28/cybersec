@@ -151,6 +151,7 @@ class SteganographyApp:
             self.image3_pic_label.place_forget()
             self.compare_button.place_forget()
             self.reset_media_controls()
+            self.encoded_label.place_forget()
 
             self.cover_label.config(text="Cover Object: None")
             self.payload_label.config(text="Payload: None")
@@ -190,8 +191,8 @@ class SteganographyApp:
             self.payload_text.place_forget()
             self.payload_image_label.place_forget()
             self.reset_media_controls()
+            self.encoded_label.place_forget()
 
-            self.reset_media_controls()
             self.stego_label.config(text="Stego Object: None")
 
             self.stego_drop.place(x=300, y=240)
@@ -265,7 +266,7 @@ class SteganographyApp:
                 self.stego_label.config(text=f"Stego Object: {os.path.basename(file_path)}")
                 self.stego_text.place_forget()
                 self.reset_media_controls()
-                self.image_label.place(x=175, y=80)
+                self.image_label.place(x=350, y=70)
             elif file_path.lower().endswith(('.mp3', '.wav')):
                 self.image_label.place_forget()
                 self.stego_text.place_forget()
@@ -468,9 +469,9 @@ class SteganographyApp:
         self.stop_cover_button.place(x=280, y=135)
 
     def place_decode_cover_media_controls(self):
-        self.play_cover_button.place(x=160, y=135)
-        self.pause_cover_button.place(x=220, y=135)
-        self.stop_cover_button.place(x=280, y=135)
+        self.play_cover_button.place(x=360, y=135)
+        self.pause_cover_button.place(x=430, y=135)
+        self.stop_cover_button.place(x=500, y=135)
 
     def place_encoded_media_controls(self):
         self.encoded_label.place(x=160, y=350)
