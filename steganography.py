@@ -29,6 +29,16 @@ def encode(cover_path: str, payload_path: str, bits: int, output_path: str):
             file.setsampwidth(w.getsampwidth())
             file.setframerate(w.getframerate())
             file.writeframes(encoded_audio)
+
+    elif file_extension in ["mp4", "avi", "mov"]:
+        encode_video(cover_path, payload_path, bits, output_path, payload_extension)
+
+    elif file_extension in ["txt"]:
+        cover_data = read_file(cover_path)
+        payload_data = read_file(payload_path)
+
+        encoded_message = encode_txt(cover_data, payload_data)
+        write_file(output_path, encoded_message)
     else:
         ValueError("File type unsupported")
 
@@ -45,8 +55,65 @@ def decode(stego_path: str, bits: int):
         stego_data = w.readframes(w.getnframes())
 
         return decode_audio(stego_data, bits)
+
+    elif file_extension in ["mp4", "avi", "mov"]:
+        return decode_video(stego_path, bits)
+    elif file_extension in ["txt"]:
+        stego_data = read_file(stego_path)
+        return decode_txt(stego_data)
     else:
         ValueError("File type unsupported")
+
+
+def encode_txt(cover_data: str, payload_data: str):
+    print(f"Cover data: {cover_data}")
+    print(f"Payload data: {payload_data}")
+
+    payload_index = 0
+    for i in range(0, len(cover_data), 8):
+        bin_str = cover_data[i : i + 8]
+        if bin_str == "00100000" or bin_str == "10100000":
+            if payload_data[payload_index] == "0":
+                cover_data = cover_data[:i] + "00100000" + cover_data[i + 8 :]
+            else:
+                cover_data = cover_data[:i] + "00001001" + cover_data[i + 8 :]
+            payload_index = payload_index + 1
+            if payload_index >= len(payload_data):
+                message = bytes(
+                    int(cover_data[i : i + 8], 2) for i in range(0, len(cover_data), 8)
+                )
+                return message
+
+    if payload_index < len(payload_data):
+        for i in range(payload_index, len(payload_data)):
+            if payload_data[payload_index] == "0":
+                cover_data += "00100000"
+            else:
+                cover_data += "00001001"
+            payload_index = payload_index + 1
+
+    message = bytes(int(cover_data[i : i + 8], 2) for i in range(0, len(cover_data), 8))
+    return message
+
+
+def decode_txt(stego_data: bytes):
+    payload_array = []
+    for i in range(0, len(stego_data), 8):
+        if stego_data[i : i + 8] == "00100000":
+            payload_array.append("0")
+        elif stego_data[i : i + 8] == "00001001":
+            payload_array.append("1")
+    payload_data = "".join(payload_array)
+    message = bytes(
+        int(payload_data[i : i + 8], 2) for i in range(0, len(payload_data), 8)
+    )
+
+    metadata = {
+        "message_extension": "txt",
+        "message_length": len(payload_data),
+        "message": message,
+    }
+    return metadata
 
 
 def encode_image(
@@ -65,7 +132,10 @@ def encode_image(
             pixel_data = to_bin(pixel)
             for index, bin_str in enumerate(pixel_data):
                 if payload_index < len(payload_data) - 1:
-                    new_bin_str = (bin_str[:-bits] + payload_data[payload_index:payload_index + bits]).ljust(8, '0')
+                    new_bin_str = (
+                        bin_str[:-bits]
+                        + payload_data[payload_index : payload_index + bits]
+                    ).ljust(8, "0")
                     pixel[index] = int(new_bin_str, 2)
 
                     payload_index += bits
@@ -90,8 +160,12 @@ def encode_audio(
         if payload_index < len(payload_data):
             bin_str = to_bin(byte)
 
-            new_bin_str = (bin_str[:-bits] + payload_data[payload_index : payload_index + bits]).ljust(8, '0')
-            mutable_cover_data[index] = int(new_bin_str, 2).to_bytes(1, byteorder="big")[0]
+            new_bin_str = (
+                bin_str[:-bits] + payload_data[payload_index : payload_index + bits]
+            ).ljust(8, "0")
+            mutable_cover_data[index] = int(new_bin_str, 2).to_bytes(
+                1, byteorder="big"
+            )[0]
 
             payload_index += bits
         else:
@@ -282,15 +356,121 @@ def compare_object(
     cv2.imwrite(output_path, comparison_result)
 
 
+def encode_video(
+    cover_path: str, payload_path: str, bits: int, output_path: str, file_extension: str
+):
+    print("\nEncoding Video..")
+    cap = cv2.VideoCapture(cover_path)
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(
+        output_path,
+        fourcc,
+        cap.get(cv2.CAP_PROP_FPS),
+        (
+            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        ),
+    )
+
+    payload_data = read_file(payload_path)
+    metadata = generate_metadata(payload_data, file_extension)
+    payload_data = metadata + payload_data
+
+    if not is_encodable_video(cap, payload_data, bits):
+        raise ValueError("Cover Object size is too small")
+
+    frame_count = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if len(payload_data) > 0:
+            encoded_frame, payload_data = encode_frame(frame, payload_data, bits)
+            out.write(encoded_frame)
+        else:
+            out.write(frame)
+        frame_count += 1
+
+    cap.release()
+    out.release()
+    print("Finished encoding Video!")
+
+
+def encode_frame(frame, payload_data, bits):
+    for row in frame:
+        for pixel in row:
+            pixel_data = to_bin(pixel)
+            for index, bin_str in enumerate(pixel_data):
+                if len(payload_data) > 0:
+                    pixel[index] = int(bin_str[:-bits] + payload_data[:bits], 2)
+                    payload_data = payload_data[bits:]
+                else:
+                    return frame, payload_data
+    return frame, payload_data
+
+
+def decode_video(stego_path: str, bits: int):
+    print("\nDecoding Video..")
+    cap = cv2.VideoCapture(stego_path)
+    payload_array = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        payload_array.append(extract_payload_from_frame(frame, bits))
+
+    payload_data = "".join(payload_array)
+    metadata = get_metadata(payload_data)
+    cap.release()
+    print("Finished decoding Video!")
+    return metadata
+
+
+def extract_payload_from_frame(frame, bits):
+    payload_array = []
+    for row in frame:
+        for pixel in row:
+            pixel_data = to_bin(pixel)
+            for bin_str in pixel_data:
+                payload_array.append(bin_str[-bits:])
+    return "".join(payload_array)
+
+
+def is_encodable_video(cap, payload_data, bits):
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cover_data_bytes = (
+        frame_count * frame_height * frame_width * 3
+    )  # 3 bytes per pixel (RGB)
+    needed_bytes = math.ceil(len(payload_data) / bits)
+    return cover_data_bytes > needed_bytes
+
+
+# if __name__ == "__main__":
+#     coverObjectPath = "./coverObject.wav"
+#     encodedObjectPath = "./encodedObject.wav"
+#     payloadPath = "./test.txt"
+
+#     encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
+
+#     data = decode(encodedObjectPath, 6)
+#     # print("Decoded_message: ", data)
+
+#     write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
+
+#     # compare_object(coverObjectPath, encodedObjectPath)
+
 if __name__ == "__main__":
-    coverObjectPath = "./coverObject.wav"
-    encodedObjectPath = "./encodedObject.wav"
-    payloadPath = "./test.txt"
+    coverObjectPath = "./coverObject.mp4"
+    encodedObjectPath = "./encodedObject.mp4"
+    payloadPath = "./payload.png"  # Ensure this path is correct and the file exists
 
     encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
 
     data = decode(encodedObjectPath, 6)
-    # print("Decoded_message: ", data)
+    print("Decoded_message: ", data)
 
     #write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
 
