@@ -291,7 +291,7 @@ def compare_object(
 def encode_video(cover_path: str, payload_path: str, bits: int, output_path: str, file_extension: str):
     print("\nEncoding Video..")
     cap = cv2.VideoCapture(cover_path)
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, cap.get(cv2.CAP_PROP_FPS), 
                           (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
@@ -369,16 +369,28 @@ def is_encodable_video(cap, payload_data, bits):
 
 
 
+# if __name__ == "__main__":
+#     coverObjectPath = "./coverObject.wav"
+#     encodedObjectPath = "./encodedObject.wav"
+#     payloadPath = "./test.txt"
+
+#     encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
+
+#     data = decode(encodedObjectPath, 6)
+#     # print("Decoded_message: ", data)
+
+#     write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
+
+#     # compare_object(coverObjectPath, encodedObjectPath) 
+
 if __name__ == "__main__":
-    coverObjectPath = "./coverObject.wav"
-    encodedObjectPath = "./encodedObject.wav"
-    payloadPath = "./test.txt"
+    coverObjectPath = "./coverObject.mp4"
+    encodedObjectPath = "./encodedObject.mp4"
+    payloadPath = "./payload.png"  # Ensure this path is correct and the file exists
 
     encode(coverObjectPath, payloadPath, 6, encodedObjectPath)
 
     data = decode(encodedObjectPath, 6)
-    # print("Decoded_message: ", data)
+    print("Decoded_message: ", data)
 
-    write_file(f"decodedMessage.{data["message_extension"]}", data["message"])
-
-    # compare_object(coverObjectPath, encodedObjectPath)
+    write_file(f"decodedMessage.{data['message_extension']}", data["message"])
