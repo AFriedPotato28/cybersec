@@ -13,7 +13,7 @@ import steganography
 class SteganographyApp:
     def __init__(self):
         self.root = TkinterDnD.Tk()
-        self.root.geometry("520x520")
+        self.root.geometry("1080x720")
         self.root.title("Steganography Tool")
 
         self.cover_audio_segment = None
@@ -32,14 +32,16 @@ class SteganographyApp:
         self.encoded_stop_flag = threading.Event()
         self.payload_stop_flag = threading.Event()
 
+
         self.cover_file_path = ""
         self.stego_file_path = ""
         self.payload_file_path = ""
-        self.encoded_path_path = ""
-        self.original_image_file_path = ""
-        self.encoded_image_file_path = ""
+        self.encoded_file_path = ""
         self.video_file_path = None
         self.payload_video_file_path = None
+
+        self.encoded_label = tk.Label(self.root)
+        self.encoded_image_label = tk.Label(self.root)
 
         self.setup_gui()
         self.root.mainloop()
@@ -97,12 +99,14 @@ class SteganographyApp:
         self.decode_button = tk.Button(self.root, text="Decode", command=self.decode)
         self.image_label = tk.Label(self.root)  # Label to display the original image
         self.payload_image_label = tk.Label(self.root) # Label to display the payload image
+        self.encoded_label = tk.Label(self.root, text="Encoded file:")
         self.encoded_image_label = tk.Label(self.root) # Label to display the encoded image
 
         self.image1_pic_label = tk.Label(self.root) # Label to display image1
         self.image2_pic_label = tk.Label(self.root) # Label to display image2
         self.image3_pic_label = tk.Label(self.root) # Label to display image2
 
+    
         self.lsb_label = tk.Label(self.root, text="Number of LSBs to use:")
         self.lsb_spinbox = tk.Spinbox(self.root, from_=1, to=8, width=5)
 
@@ -138,17 +142,23 @@ class SteganographyApp:
             self.cover_text.place_forget()
             self.payload_text.place_forget()
             self.reset_media_controls()
+            self.image1_label.place_forget()
+            self.image2_label.place_forget()
+            self.image1_drop.place_forget()
+            self.image2_drop.place_forget()
             self.cover_label.config(text="Cover Object: None")
             self.payload_label.config(text="Payload: None")
+            self.encoded_label.config(text="Encoded File: None")
 
-            self.cover_drop.place(x=50, y=240)
-            self.cover_label.place(x=50, y=280)
-            self.payload_drop.place(x=280, y=240)
-            self.payload_label.place(x=280, y=280)
+            self.cover_drop.place(x=140, y=240)
+            self.cover_label.place(x=140, y=280)
+            self.payload_drop.place(x=500, y=240)
+            self.payload_label.place(x=500, y=280)
             self.lsb_label.place(x=120, y=320)
             self.lsb_spinbox.place(x=250, y=320)
             self.encode_button.place(x=320, y=315)
-            #self.payload_text.place(x=280, y=50)
+            self.compare_button.place_forget()
+            self.payload_text.place(x=500, y=50)
             self.image_label.place(x=80, y=50)
             self.payload_image_label.place(x=280, y=50)
 
@@ -161,6 +171,14 @@ class SteganographyApp:
             self.payload_drop.place_forget()
             self.payload_label.place_forget()
             self.encode_button.place_forget()
+            self.encoded_image_label.place_forget()
+            self.image1_label.place_forget()
+            self.image2_label.place_forget()
+            self.image1_drop.place_forget()
+            self.image2_drop.place_forget()
+            self.compare_button.place_forget()
+            self.payload_text.place_forget()
+
             self.reset_media_controls()
             self.stego_label.config(text="Stego Object: None")
 
@@ -176,6 +194,14 @@ class SteganographyApp:
             self.lsb_label.place_forget()
             self.lsb_spinbox.place_forget()
             self.decode_button.place_forget()
+            self.encode_button.place_forget()
+            self.cover_label.place_forget()
+            self.cover_drop.place_forget()
+            self.payload_drop.place_forget()
+            self.payload_label.place_forget()
+            self.payload_image_label.place_forget()
+            self.image_label.place_forget()
+            self.payload_text.place_forget()
 
             self.image1_drop.place(x=50, y=240)
             self.image1_label.place(x=50, y=280)
@@ -247,6 +273,13 @@ class SteganographyApp:
                 self.image_label.place(x=160, y=40)
             else:
                 messagebox.showerror("Error", "Unsupported stego object type.")
+        elif self.operation_combobox.get() == "Compare":
+            self.stego_file_path = file_path
+            if file_path.lower().endswith(('.png', '.bmp', '.gif')):
+                self.display_image(file_path)
+                self.stego_label.config(text=f"Stego Object: {os.path.basename(file_path)}")
+            else:
+                messagebox.showerror("Error", "Unsupported stego object type.")
 
         elif self.operation_combobox.get() == "Comparison":
             self.image1_file_path = file_path
@@ -274,7 +307,7 @@ class SteganographyApp:
             self.display_payload_image(file_path)
             self.payload_label.config(text=f"Payload: {os.path.basename(file_path)}")
             self.reset_media_controls(is_cover=False)
-            self.payload_image_label.place(x=280, y=70)
+            self.payload_image_label.place(x=500, y=70)
         elif file_path.lower().endswith(('.mp3', '.wav')):
             self.payload_text.place_forget()
             self.payload_image_label.place_forget()
@@ -303,7 +336,7 @@ class SteganographyApp:
                 payload_content = file.read()
                 self.payload_text.delete('1.0', tk.END)
                 self.payload_text.insert(tk.END, payload_content)
-                self.payload_text.place(x=280, y=50)
+                self.payload_text.place(x=500, y=50)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to read payload file: {e}")
 
@@ -332,6 +365,7 @@ class SteganographyApp:
         if file_path:
             self.handle_cover_stego_drop(type('', (), {'data': file_path})())
 
+
     def browse_payload(self, event=None):
         file_path = filedialog.askopenfilename(title="Select Payload Object", filetypes=[("All Files", "*.*")])
         if file_path:
@@ -354,10 +388,11 @@ class SteganographyApp:
 
     def display_image(self, file_path):
         image = Image.open(file_path)
-        image.thumbnail((130, 130), Image.LANCZOS)
+        image.thumbnail((300, 300), Image.LANCZOS)
         image = ImageTk.PhotoImage(image)
         self.image_label.config(image=image)
         self.image_label.image = image
+    
 
     def display_image1(self, file_path):
         image = Image.open(file_path)
@@ -382,15 +417,19 @@ class SteganographyApp:
 
     def display_payload_image(self, file_path):
         image = Image.open(file_path)
-        image.thumbnail((130, 130), Image.LANCZOS)
+        image.thumbnail((300, 300), Image.LANCZOS)
         image = ImageTk.PhotoImage(image)
         self.payload_image_label.config(image=image)
         self.payload_image_label.image = image
     
     def display_encoded_image(self, file_path):
+        self.play_encoded_button.place_forget()
+        self.stop_encoded_button.place_forget()
         self.encoded_label.place(x=200, y=350)
+        self.encoded_label.update()
+        self.root.update_idletasks()
         image = Image.open(file_path)
-        image.thumbnail((130, 130), Image.LANCZOS)
+        image.thumbnail((300, 300), Image.LANCZOS)
         image = ImageTk.PhotoImage(image)
         self.encoded_image_label.config(image=image)
         self.encoded_image_label.image = image
@@ -417,10 +456,9 @@ class SteganographyApp:
         self.stop_cover_button.place(x=280, y=210)
 
     def place_encoded_media_controls(self):
-        self.encoded_label.place(x=200, y=350)
-        self.play_encoded_button.place(x=300, y=350)
-        self.pause_encoded_button.place(x=360, y=350)
-        self.stop_encoded_button.place(x=420, y=350)
+        self.encoded_label.place(x=160, y=350)
+        self.play_encoded_button.place(x=180, y=390)
+        self.stop_encoded_button.place(x=240, y=390)
 
     def place_payload_media_controls(self):
         self.play_payload_button.place(x=300, y=210)
@@ -632,10 +670,14 @@ class SteganographyApp:
         steganography.encode(cover_path,payload_path,bits,output_path)
         messagebox.showinfo("Success", "Encoding completed successfully.")
         if cover_path_extension in ["png", "bmp"]:
+            self.encoded_label.config(text=f"Encoded file: {os.path.basename(output_path)}")
             self.display_encoded_image(output_path)
+            self.root.update_idletasks()
         if cover_path_extension in ["wav"]:
+            self.encoded_label.config(text=f"Encoded file: {os.path.basename(output_path)}")
             self.load_encoded_audio(output_path)
             self.place_encoded_media_controls()
+            self.root.update_idletasks()
             
     def decode(self):
         # Implement the encoding logic here
