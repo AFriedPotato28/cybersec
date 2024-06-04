@@ -146,6 +146,10 @@ class SteganographyApp:
             self.image2_label.place_forget()
             self.image1_drop.place_forget()
             self.image2_drop.place_forget()
+            self.image1_pic_label.place_forget()
+            self.image2_pic_label.place_forget()
+            self.image3_pic_label.place_forget()
+            
             self.cover_label.config(text="Cover Object: None")
             self.payload_label.config(text="Payload: None")
             self.encoded_label.config(text="Encoded File: None")
@@ -178,6 +182,9 @@ class SteganographyApp:
             self.image2_drop.place_forget()
             self.compare_button.place_forget()
             self.payload_text.place_forget()
+            self.image1_pic_label.place_forget()
+            self.image2_pic_label.place_forget()
+            self.image3_pic_label.place_forget()
 
             self.reset_media_controls()
             self.stego_label.config(text="Stego Object: None")
