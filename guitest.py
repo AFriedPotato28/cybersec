@@ -149,7 +149,7 @@ class SteganographyApp:
             self.image1_pic_label.place_forget()
             self.image2_pic_label.place_forget()
             self.image3_pic_label.place_forget()
-            
+
             self.cover_label.config(text="Cover Object: None")
             self.payload_label.config(text="Payload: None")
             self.encoded_label.config(text="Encoded File: None")
@@ -162,9 +162,9 @@ class SteganographyApp:
             self.lsb_spinbox.place(x=250, y=320)
             self.encode_button.place(x=320, y=315)
             self.compare_button.place_forget()
-            self.payload_text.place(x=500, y=50)
+            #self.payload_text.place(x=500, y=50)
             self.image_label.place(x=80, y=50)
-            self.payload_image_label.place(x=280, y=50)
+            self.payload_image_label.place(x=500, y=50)
 
         elif operation == "Decode":
             self.cover_text.place_forget()
@@ -185,6 +185,9 @@ class SteganographyApp:
             self.image1_pic_label.place_forget()
             self.image2_pic_label.place_forget()
             self.image3_pic_label.place_forget()
+            self.image_label.place_forget()
+            self.payload_text.place_forget()
+            self.payload_image_label.place_forget()
 
             self.reset_media_controls()
             self.stego_label.config(text="Stego Object: None")
@@ -424,7 +427,7 @@ class SteganographyApp:
 
     def display_payload_image(self, file_path):
         image = Image.open(file_path)
-        image.thumbnail((300, 300), Image.LANCZOS)
+        image.thumbnail((300, 150), Image.LANCZOS)
         image = ImageTk.PhotoImage(image)
         self.payload_image_label.config(image=image)
         self.payload_image_label.image = image
