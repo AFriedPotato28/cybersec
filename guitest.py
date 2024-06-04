@@ -8,6 +8,7 @@ import numpy as np
 import os
 import threading, time
 import pyaudio
+import steganography
 
 class SteganographyApp:
     def __init__(self):
@@ -352,15 +353,19 @@ class SteganographyApp:
 
     def play_cover_video(self, file_path):
         video = imageio.get_reader(file_path)
+        self.cover_is_playing = False
+        self.cover_is_paused = False
         self.cover_stop_flag.clear()
-        threading.Thread(target=self._play_video, args=(video, self.cover_stop_flag, True)).start()
+        threading.Thread(target=self._play_video_stream, args=(file_path,)).start()
 
     def play_payload_video(self, file_path):
         video = imageio.get_reader(file_path)
+        self.payload_is_playing = False
+        self.payload_is_paused = False
         self.payload_stop_flag.clear()
-        threading.Thread(target=self._play_video, args=(video, self.payload_stop_flag, False)).start()
+        threading.Thread(target=self._play_payload_video_stream, args=(file_path,)).start()
 
-    def _play_video(self, video, stop_flag, is_cover=True):
+    '''def _play_video(self, video, stop_flag, is_cover=True):
         for frame in video.iter_data():
             if stop_flag.is_set():
                 break
@@ -373,15 +378,74 @@ class SteganographyApp:
             else:
                 self.payload_image_label.config(image=frame_image)
                 self.payload_image_label.image = frame_image
-            time.sleep(1 / video.get_meta_data()['fps'])
+            time.sleep(1 / video.get_meta_data()['fps'])'''
+
+    def _play_video_stream(self, file_path):
+        try:
+            video = imageio.get_reader(file_path, 'ffmpeg')
+            for frame in video:
+                while not self.cover_is_playing and not self.cover_stop_flag.is_set():
+                    time.sleep(0.1)  # Wait until 'Play' button is pressed
+                if self.cover_stop_flag.is_set():
+                    break
+                if self.cover_is_paused:
+                    while self.cover_is_paused and not self.cover_stop_flag.is_set():
+                        time.sleep(0.1)  # Wait while paused
+                frame_image = Image.fromarray(np.uint8(frame)).resize((160, 160), Image.Resampling.LANCZOS)
+                self.tk_frame_image = ImageTk.PhotoImage(frame_image)
+                self.image_label.config(image=self.tk_frame_image)
+                self.image_label.image = self.tk_frame_image
+                time.sleep(0.03)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to play video: {e}")
+
+    def _play_payload_video_stream(self, file_path):
+        try:
+            video = imageio.get_reader(file_path, 'ffmpeg')
+            for frame in video:
+                while not self.payload_is_playing and not self.payload_stop_flag.is_set():
+                    time.sleep(0.1)  # Wait until 'Play' button is pressed
+                if self.payload_stop_flag.is_set():
+                    break
+                if self.payload_is_paused:
+                    while self.payload_is_paused and not self.payload_stop_flag.is_set():
+                        time.sleep(0.1)  # Wait while paused
+                frame_image = Image.fromarray(np.uint8(frame)).resize((160, 160), Image.Resampling.LANCZOS)
+                self.tk_frame_image = ImageTk.PhotoImage(frame_image)
+                self.payload_image_label.config(image=self.tk_frame_image)
+                self.payload_image_label.image = self.tk_frame_image
+                time.sleep(0.03)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to play video: {e}")
 
     def encode(self):
         # Implement the encoding logic here
-        pass
+        cover_path = self.cover_file_path
+        payload_path = self.payload_file_path
+        bits = int(self.lsb_spinbox.get())
+        output_path = filedialog.asksaveasfilename()
+
+        if not cover_path or not payload_path:
+            messagebox.showerror("Error", "Please select cover and payload objects.")
+            return
+        
+        steganography.encode(cover_path,payload_path,bits,output_path)
+        messagebox.showinfo("Success", "Encoding completed successfully.")
 
     def decode(self):
-        # Implement the decoding logic here
-        pass
+        # Implement the encoding logic here
+        stego_path = self.stego_file_path
+        bits = int(self.lsb_spinbox.get())
+        output_path = filedialog.asksaveasfilename()
+
+        if not stego_path:
+            messagebox.showerror("Error", "Please select stego objects.")
+            return
+        
+        data = steganography.decode(stego_path,bits)
+        print(data)
+        steganography.write_file(f"{output_path}.{data['message_extension']}", data["message"])
+        messagebox.showinfo("Success", "Decoding completed successfully.")
 
     def on_closing(self):
         self.stop_cover_audio_or_video()
