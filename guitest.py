@@ -9,6 +9,7 @@ import os
 import threading, time
 import pyaudio
 
+
 class SteganographyApp:
     def __init__(self):
         self.root = TkinterDnD.Tk()
@@ -30,6 +31,17 @@ class SteganographyApp:
 
         self.setup_gui()
         self.root.mainloop()
+
+    def check_limit(self):
+        if self.operation_combobox.get() == "Encode":
+            cover_file_size = os.path.getsize(self.cover_file_path)
+            payload_file_size = os.path.getsize(self.payload_file_path) 
+            if cover_file_size < payload_file_size:
+                messagebox.showerror("Error", "Payload file size is greater than cover file size.")
+                return False
+        return True
+    
+
 
     def setup_gui(self):
         self.operation_label = tk.Label(self.root, text="Select Operation:")
@@ -199,6 +211,7 @@ class SteganographyApp:
             self.place_payload_media_controls()
         else:
             messagebox.showerror("Error", "Unsupported payload type.")
+            
 
     def display_payload_text(self, file_path):
         try:
