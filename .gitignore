@@ -3,6 +3,13 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+#avi,txt,wav,mp3,mp4 files
+*.avi
+*.txt
+*.wav
+*.mp4
+*.mp3
+
 #env files
 myenv
 venv
