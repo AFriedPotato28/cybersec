@@ -165,6 +165,10 @@ class SteganographyApp:
             self.stego_text.place_forget()
             self.decoded_text.place_forget()
             self.decodefile_label.place_forget()
+            self.payload_image_label.place_forget()
+            self.image_label.place_forget()
+            self.image_label.config(image='')
+            self.payload_image_label.config(image='')
 
             self.cover_label.config(text="Cover Object: None")
             self.payload_label.config(text="Payload: None")
@@ -205,6 +209,8 @@ class SteganographyApp:
             self.payload_image_label.place_forget()
             self.reset_media_controls()
             self.encoded_label.place_forget()
+            self.image_label.config(image='')
+            self.payload_image_label.config(image='')
 
             self.stego_label.config(text="Stego Object: None")
 
@@ -232,6 +238,8 @@ class SteganographyApp:
             self.decoded_text.place_forget()
             self.encoded_image_label.place_forget()
             self.decodefile_label.place_forget()
+            self.image_label.config(image='')
+            self.payload_image_label.config(image='')
 
             self.image1_drop.place(x=80, y=240)
             self.image1_label.place(x=140, y=280)
