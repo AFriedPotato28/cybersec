@@ -342,7 +342,7 @@ class SteganographyApp:
         file_path = event.data.strip("{}")
         self.stop_payload_audio_or_video()  # Stop existing audio or video stream
         self.payload_file_path = file_path
-        if file_path.lower().endswith(('.png', '.bmp', '.gif')):
+        if file_path.lower().endswith(('.png', '.gif')):
             self.payload_text.place_forget()
             self.display_payload_image(file_path)
             self.payload_label.config(text=f"Payload: {os.path.basename(file_path)}")
