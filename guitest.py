@@ -19,18 +19,23 @@ class SteganographyApp:
         self.cover_audio_segment = None
         self.payload_audio_segment = None
         self.encoded_audio_segment = None
+        self.decoded_audio_segment = None
         self.cover_stream = None
         self.payload_stream = None
         self.encoded_stream = None
+        self.decoded_steam = None
         self.cover_is_playing = False
         self.payload_is_playing = False
         self.encoded_is_playing = False
+        self.decoded_is_playing = False
         self.cover_is_paused = False
         self.payload_is_paused = False
         self.encoded_is_paused = False
+        self.decoded_is_paused = False
         self.cover_stop_flag = threading.Event()
         self.encoded_stop_flag = threading.Event()
         self.payload_stop_flag = threading.Event()
+        self.decoded_stop_flag = threading.Event()
 
         self.cover_file_path = ""
         self.stego_file_path = ""
@@ -119,6 +124,9 @@ class SteganographyApp:
         self.play_cover_button = tk.Button(self.root, text="Play", command=self.play_cover_audio, width=5)
         self.pause_cover_button = tk.Button(self.root, text="Pause", command=self.pause_cover_audio, width=5)
         self.stop_cover_button = tk.Button(self.root, text="Stop", command=self.stop_cover_audio_or_video, width=5)
+
+        self.play_decoded_button = tk.Button(self.root, text="Play", command=self.play_decoded_audio, width=5)
+        self.stop_decoded_button = tk.Button(self.root, text="Play", command=self.stop_decoded_audio_or_video, width=5)
 
         self.play_payload_button = tk.Button(self.root, text="Play", command=self.play_payload_audio, width=5)
         self.pause_payload_button = tk.Button(self.root, text="Pause", command=self.pause_payload_audio, width=5)
@@ -493,6 +501,8 @@ class SteganographyApp:
             self.play_cover_button.place_forget()
             self.pause_cover_button.place_forget()
             self.stop_cover_button.place_forget()
+            self.play_encoded_button.place_forget()
+            self.stop_encoded_button.place_forget()
 
     def place_cover_media_controls(self):
         self.play_cover_button.place(x=140, y=135)
@@ -503,6 +513,10 @@ class SteganographyApp:
         self.play_cover_button.place(x=360, y=210)
         self.pause_cover_button.place(x=430, y=210)
         self.stop_cover_button.place(x=500, y=210)
+    
+    def place_decoded_media_controls(self):
+        self.play_decoded_button.place(x=350, y=380)
+        self.stop_decoded_button.place(x=400, y=380)
 
     def place_encoded_media_controls(self):
         self.encoded_label.place(x=160, y=350)
@@ -526,6 +540,12 @@ class SteganographyApp:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load encoded audio: {e}")
 
+    def load_decoded_audio(self, file_path):
+        try:
+            self.decoded_audio_segment = AudioSegment.from_file(file_path)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load encoded audio: {e}")
+
     def play_cover_audio(self):
         if self.cover_audio_segment:
             self.cover_stop_flag.clear()
@@ -537,6 +557,14 @@ class SteganographyApp:
             self.encoded_stop_flag.clear()
             self.encoded_is_playing = True
             threading.Thread(target=self._play_audio, args=(self.encoded_audio_segment, self.encoded_stop_flag, False)).start()
+        else:
+            messagebox.showerror("Error", "No encoded audio loaded.")
+    
+    def play_decoded_audio(self):
+        if self.decoded_audio_segment:
+            self.decoded_stop_flag.clear()
+            self.decoded_is_playing = True
+            threading.Thread(target=self._play_audio, args=(self.decoded_audio_segment, self.decoded_stop_flag, False)).start()
         else:
             messagebox.showerror("Error", "No encoded audio loaded.")
 
@@ -623,6 +651,17 @@ class SteganographyApp:
             self.encoded_stop_flag.set()
             self.encoded_is_paused = False
             self.encoded_is_playing = False
+            self.reset_media_controls(is_cover=True)
+            self.image_label.config(image='', text='')
+
+    def stop_decoded_audio_or_video(self):
+        '''self.cover_stop_flag.set()
+        self.cover_is_paused = False
+        self.pause_cover_button.config(text="Pause")'''
+        if self.decoded_is_playing or self.decoded_is_paused:
+            self.decoded_stop_flag.set()
+            self.decoded_is_paused = False
+            self.decoded_is_playing = False
             self.reset_media_controls(is_cover=True)
             self.image_label.config(image='', text='')
 
@@ -764,11 +803,18 @@ class SteganographyApp:
             file_to_read = output_path + "." + data['message_extension']
             print("file to read: "+file_to_read)
             self.display_decoded_text(file_to_read)
-        if data['message_extension'] in ["png", "bmp"]:
+        elif data['message_extension'] in ["png", "bmp"]:
             self.decodefile_label.place(x=300, y=370)
             self.decodefile_label.config(text=f"Decoded file: {os.path.basename(output_path)}"+"."+data['message_extension'])
             file_to_read = output_path + "." + data['message_extension']
             self.display_decoded_image(file_to_read)
+            self.root.update_idletasks()
+        elif data['message_extension'] in ["wav"]:
+            self.decodefile_label.place(x=300, y=370)
+            self.encoded_label.config(text=f"Decoded file: {os.path.basename(output_path)}"+"."+data['message_extension'])
+            file_to_read = output_path + "." + data['message_extension']
+            self.load_decoded_audio(file_to_read)
+            self.place_decoded_media_controls()
             self.root.update_idletasks()
         else:
             self.decodefile_label.place(x=300, y=370)
