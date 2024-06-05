@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Steganography</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <style>
+      .media-box {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .media-box-view {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .dragover {
+        border-color: blue; /* Change border color when dragging over */
+      }
+      .media-preview img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .media-preview video {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .textBox {
+        overflow-wrap: break-word;
+        max-width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 2px solid #ccc;
+      }
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(
+          255,
+          255,
+          255,
+          0.7
+        ); /* semi-transparent white background */
+        display: flex; /* Use flexbox */
+        justify-content: center; /* Center horizontally */
+        align-items: center; /* Center vertically */
+      }
+
+      .spinner-border {
+        width: 3rem;
+        height: 3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="loading-screen" class="loading-screen">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <h1 class="py-5">Steganography</h1>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a
+            class="nav-link active"
+            aria-current="page"
+            data-bs-toggle="tab"
+            href="#encode"
+            >Encode</a
+          >
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#decode">Decode</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#compare">Compare</a>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div
+          class="alert alert-danger d-none"
+          role="alert"
+          id="error_message"
+        ></div>
+        <div class="tab-pane show active" id="encode">
+          <!-- Content for Encode tab -->
+          <div class="container-fluid py-4">
+            <form
+              id="encode-form"
+              action="/encode"
+              method="post"
+              enctype="multipart/form-data"
+            >
+              <div class="row">
+                <div class="col-1">
+                  <h4><u>Encode</u></h4>
+                </div>
+
+                <div class="col-2">
+                  <select
+                    class="form-select"
+                    name="bits"
+                    aria-label="Default select example"
+                  >
+                    <option selected disabled>Bits</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row mt-4">
+                <div class="col-3">
+                  <h5>Payload</h5>
+                  <div
+                    class="media-box"
+                    id="media-box-payload"
+                    data-input-id="input-payload"
+                  >
+                    <div class="media-preview"></div>
+                    <p class="m-0">Drag & Drop or Click to select media</p>
+                    <input
+                      type="file"
+                      name="file-payload"
+                      id="input-payload"
+                      class="d-none"
+                      data-mediabox-id="media-box-payload"
+                      accept="image/*, video/*, audio/*, text/plain"
+                    />
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+
+                <div class="col-3 offset-1">
+                  <h5>Cover Object</h5>
+                  <div
+                    class="media-box"
+                    id="media-box-cover"
+                    data-input-id="input-cover"
+                  >
+                    <div class="media-preview"></div>
+                    <p class="m-0">Drag & Drop or Click to select media</p>
+                    <input
+                      type="file"
+                      name="file-cover"
+                      id="input-cover"
+                      class="d-none"
+                      data-mediabox-id="media-box-cover"
+                      accept="image/*, video/*, audio/*, text/plain"
+                    />
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+
+                <div class="col-3 offset-1">
+                  <h5>Output</h5>
+                  <div class="media-box-view">
+                    <div class="media-preview" id="encoded_media"></div>
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+              </div>
+              <div class="row my-4">
+                <div class="col-1 offset-10">
+                  <button type="submit" class="btn btn-primary">Encode</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="tab-pane" id="decode">
+          <!-- Content for Decode tab -->
+          <div class="container-fluid py-4">
+            <form
+              id="decode-form"
+              action="/decode"
+              method="post"
+              enctype="multipart/form-data"
+            >
+              <div class="row">
+                <div class="col-1">
+                  <h4><u>Decode</u></h4>
+                </div>
+
+                <div class="col-2">
+                  <select
+                    class="form-select"
+                    name="bits"
+                    aria-label="Default select example"
+                  >
+                    <option selected disabled>Bits</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row mt-4">
+                <div class="col-3">
+                  <h5>Encoded Object</h5>
+                  <div
+                    class="media-box"
+                    id="media-box-stego"
+                    data-input-id="input-stego"
+                  >
+                    <div class="media-preview"></div>
+                    <p class="m-0">Drag & Drop or Click to select media</p>
+                    <input
+                      type="file"
+                      name="file-stego"
+                      id="input-stego"
+                      class="d-none"
+                      data-mediabox-id="media-box-stego"
+                      accept="image/*, video/*, audio/*, text/plain"
+                    />
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+
+                <div class="col-3 offset-1">
+                  <h5>Output</h5>
+                  <div class="media-box-view">
+                    <div class="media-preview" id="decoded_media"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="row my-4">
+                <div class="col-1 offset-10">
+                  <button type="submit" class="btn btn-primary">Decode</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="tab-pane" id="compare">
+          <!-- Content for Compare tab -->
+          <div class="container-fluid py-4">
+            <form
+              id="compare-form"
+              action="/compare"
+              method="post"
+              enctype="multipart/form-data"
+            >
+              <h4><u>Compare</u></h4>
+              <div class="row mt-4">
+                <div class="col-3">
+                  <h5>Payload</h5>
+                  <div
+                    class="media-box"
+                    id="media-box-object1"
+                    data-input-id="input-object1"
+                  >
+                    <div class="media-preview"></div>
+                    <p class="m-0">Drag & Drop or Click to select media</p>
+                    <input
+                      type="file"
+                      name="file-object1"
+                      id="input-object1"
+                      class="d-none"
+                      data-mediabox-id="media-box-object1"
+                      accept="image/*, video/*, text/plain"
+                    />
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+
+                <div class="col-3 offset-1">
+                  <h5>Cover Object</h5>
+                  <div
+                    class="media-box"
+                    id="media-box-object2"
+                    data-input-id="input-object2"
+                  >
+                    <div class="media-preview"></div>
+                    <p class="m-0">Drag & Drop or Click to select media</p>
+                    <input
+                      type="file"
+                      name="file-object2"
+                      id="input-object2"
+                      class="d-none"
+                      data-mediabox-id="media-box-object2"
+                      accept="image/*, video/*, text/plain"
+                    />
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+
+                <div class="col-3 offset-1">
+                  <h5>Output</h5>
+                  <div class="media-box-view">
+                    <div class="media-preview" id="compare_media"></div>
+                  </div>
+                  <p class="file-path text-center"></p>
+                </div>
+              </div>
+              <div class="row my-4">
+                <div class="col-1 offset-10">
+                  <button type="submit" class="btn btn-primary">Compare</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Bootstrap JavaScript (optional) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+      integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+      integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      $(document).ready(function () {
+        hideLoadingScreen();
+        // Event listener for form submission
+        $("#encode-form").submit(function (event) {
+          event.preventDefault(); // Prevent the default form submission
+
+          showLoadingScreen();
+          const error_element = document.getElementById("error_message");
+          error_element.classList.add("d-none");
+
+          // Serialize form data
+          var form = document.getElementById("encode-form");
+          var formData = new FormData(form);
+          console.log("Form data:", formData);
+
+          $.ajax({
+            url: "/encode",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+              $("#encoded_media").html(data); // Update content of the placeholder element
+              hideLoadingScreen();
+            },
+            error: function (xhr, status, error) {
+              error_element.classList.remove("d-none");
+              error_element.innerHTML = xhr.responseJSON.error;
+
+              hideLoadingScreen();
+            },
+          });
+        });
+
+        $("#decode-form").submit(function (event) {
+          event.preventDefault(); // Prevent the default form submission
+
+          showLoadingScreen();
+          const error_element = document.getElementById("error_message");
+          error_element.classList.add("d-none");
+
+          // Serialize form data
+          var form = document.getElementById("decode-form");
+          console.log(form);
+          var formData = new FormData(form);
+
+          $.ajax({
+            url: "/decode",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+              $("#decoded_media").html(data); // Update content of the placeholder element
+              hideLoadingScreen();
+            },
+            error: function (xhr, status, error) {
+              error_element.classList.remove("d-none");
+              error_element.innerHTML = xhr.responseJSON.error;
+
+              hideLoadingScreen();
+            },
+          });
+        });
+
+        $("#compare-form").submit(function (event) {
+          event.preventDefault(); // Prevent the default form submission
+
+          showLoadingScreen();
+          const error_element = document.getElementById("error_message");
+          error_element.classList.add("d-none");
+
+          // Serialize form data
+          var form = document.getElementById("compare-form");
+          var formData = new FormData(form);
+
+          $.ajax({
+            url: "/compare",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+              $("#compare_media").html(data); // Update content of the placeholder element
+              hideLoadingScreen();
+            },
+            error: function (xhr, status, error) {
+              error_element.classList.remove("d-none");
+              error_element.innerHTML = xhr.responseJSON.error;
+
+              hideLoadingScreen();
+            },
+          });
+        });
+      });
+      // Function to handle file selection
+      function handleFileSelect(event, mediaBox) {
+        event.preventDefault();
+        const files = event.target.files || event.dataTransfer.files;
+
+        const mediaPreview = mediaBox.querySelector(".media-preview");
+        mediaPreview.innerHTML = ""; // Clear previous content
+        console.log(mediaPreview);
+        const filePathElement =
+          mediaBox.parentElement.querySelector(".file-path");
+
+        for (const file of files) {
+          const readerDataURL = new FileReader();
+          if (file.type === "text/plain") {
+            readerDataURL.readAsText(file); // Read as text for text/plain files
+          } else {
+            readerDataURL.readAsDataURL(file); // Read as data URL for other file types
+          }
+          readerDataURL.onload = function (e) {
+            filePathElement.innerHTML = file.name;
+            if (file.type.startsWith("image")) {
+              const img = document.createElement("img");
+              img.src = e.target.result;
+              mediaPreview.appendChild(img);
+            } else if (file.type.startsWith("audio")) {
+              const audio = document.createElement("audio");
+              audio.src = e.target.result;
+              audio.controls = true;
+              mediaPreview.appendChild(audio);
+            } else if (file.type.startsWith("video")) {
+              const video = document.createElement("video");
+              video.src = e.target.result;
+              video.controls = true;
+              mediaPreview.appendChild(video);
+            } else if (file.type.startsWith("text")) {
+              const textDiv = document.createElement("div");
+              textDiv.classList.add("textBox");
+              textDiv.textContent = e.target.result;
+              mediaPreview.appendChild(textDiv);
+            }
+          };
+        }
+      }
+
+      // Event listeners for drag and drop for each media box
+      const mediaBoxes = document.querySelectorAll(".media-box");
+      const encodeForm = document.getElementById("encode-form");
+      const decodeForm = document.getElementById("decode-form");
+
+      mediaBoxes.forEach((mediaBox, index) => {
+        console.log(mediaBox, index);
+        mediaBox.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          this.classList.add("dragover");
+        });
+
+        mediaBox.addEventListener("dragleave", function (event) {
+          event.preventDefault();
+          this.classList.remove("dragover");
+        });
+
+        mediaBox.addEventListener("drop", function (event) {
+          event.preventDefault();
+          this.classList.remove("dragover");
+
+          input_id = mediaBox.getAttribute("data-input-id");
+          input_element = document.getElementById(input_id);
+
+          input_element.files = event.dataTransfer.files;
+
+          handleFileSelect(event, mediaBox);
+        });
+      });
+
+      mediaBoxes.forEach((mediaBox, index) => {
+        const input_id = mediaBox.getAttribute("data-input-id");
+        const input_element = document.getElementById(input_id);
+
+        input_element.addEventListener("change", function (event) {
+          handleFileSelect(event, mediaBox);
+        });
+      });
+
+      mediaBoxes.forEach((mediaBox, index) => {
+        mediaBox.addEventListener("click", function (event) {
+          const input_id = mediaBox.getAttribute("data-input-id");
+          const input_element = document.getElementById(input_id);
+
+          input_element.click();
+        });
+      });
+
+      function showLoadingScreen() {
+        document.querySelector(".loading-screen").classList.remove("d-none");
+      }
+
+      // Function to hide the loading screen
+      function hideLoadingScreen() {
+        document.querySelector(".loading-screen").classList.add("d-none");
+      }
+    </script>
+  </body>
+</html>

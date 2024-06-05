@@ -66,9 +66,6 @@ def decode(stego_path: str, bits: int):
 
 
 def encode_txt(cover_data: str, payload_data: str):
-    print(f"Cover data: {cover_data}")
-    print(f"Payload data: {payload_data}")
-
     payload_index = 0
     for i in range(0, len(cover_data), 8):
         bin_str = cover_data[i : i + 8]
@@ -226,14 +223,18 @@ def generate_metadata(payload_data: str, payload_extension: str):
 def get_metadata(payload_data: str):
     print("\nDecoding Metadata..")
     message_length = int(payload_data[0:METADATA_MESSAGE_LENGTH_SIZE], 2)
-    message_extension = bytes(
-        int(payload_data[i : i + 8], 2)
-        for i in range(
-            METADATA_MESSAGE_LENGTH_SIZE,
-            METADATA_LENGTH,
-            8,
-        )
-    ).decode("ascii")
+
+    try:
+        message_extension = bytes(
+            int(payload_data[i : i + 8], 2)
+            for i in range(
+                METADATA_MESSAGE_LENGTH_SIZE,
+                METADATA_LENGTH,
+                8,
+            )
+        ).decode("ascii")
+    except:
+        raise ValueError("Incorrect Bit to decode was given!")
 
     bin_message = payload_data[METADATA_LENGTH : METADATA_LENGTH + message_length]
     message = bytes(
