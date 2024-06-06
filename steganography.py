@@ -66,8 +66,8 @@ def decode(stego_path: str, bits: int):
 
 
 def encode_txt(cover_data: str, payload_data: str):
-    print(f"Cover data: {cover_data}")
-    print(f"Payload data: {payload_data}")
+    # print(f"Cover data: {cover_data}")
+    # print(f"Payload data: {payload_data}")
 
     payload_index = 0
     for i in range(0, len(cover_data), 8):
